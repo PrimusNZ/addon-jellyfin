@@ -1,0 +1,26 @@
+---
+name: Jellyfin Server
+version: 1.1.2
+slug: jellyfinserver
+description: Jellyfin Server add-on
+url: https://github.com/PrimusNZ/addon-jellyfin
+webui: http://[HOST]:[PORT:8096]
+arch:
+  - aarch64
+  - armv7
+  - amd64
+init: false
+map:
+  - config:rw
+  - share:rw
+  - media:rw
+  - ssl
+video: true
+watchdog: http://[HOST]:8096/health
+ports:
+  8096/tcp: 8096
+  8920/tcp: null
+ports_description:
+  8096/tcp: Jellyfin web and media port
+  8920/tcp: Jellyfin TLS port, must be configured in the server first
+image: ghcr.io/primusnz/hassio-addons/{arch}-jellyfin-server
