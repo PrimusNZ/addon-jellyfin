@@ -32,6 +32,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Get information
+        id: info
+        uses: home-assistant/actions/helpers/info@master
+        with:
+          path: "./${{ matrix.addon }}"
+
+      - name: Check if add-on should be built
+        id: check
+        run: |
+          if [[ "${{ steps.info.outputs.architectures }}" =~ ${{ matrix.arch }} ]]; then
+             echo "build_arch=true" >>$GITHUB_OUTPUT
+             echo "image=$(echo ${{ steps.info.outputs.image }} | cut -d'/' -f3)" >>$GITHUB_OUTPUT
+           else
+             echo "${{ matrix.arch }} is not a valid arch for ${{ matrix.addon }}, skipping build"
+             echo "build_arch=false" >>$GITHUB_OUTPUT
+          fi
+          
+          BUILD_ARGS=""
+          if ${{ !startsWith(github.ref, 'refs/tags/v') }}; then
+            BUILD_ARGS+=" --no-latest --version unstable-${GITHUB_REF_NAME//[\/]/-}"
+            if ${{ github.ref != 'refs/heads/main' }}; then
+              BUILD_ARGS+=" --test"
+            fi
+          fi
+          echo "build_args=$BUILD_ARGS" >>$GITHUB_OUTPUT
+
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
@@ -50,7 +76,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Publish
+      - name: Build ${{ matrix.addon }} add-on
+        if: steps.check.outputs.build_arch == 'true'
         uses: home-assistant/builder@master
         with:
           args: |
